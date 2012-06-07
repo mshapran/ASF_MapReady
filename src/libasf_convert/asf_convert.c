@@ -241,14 +241,15 @@ static char *read_str(char *line, char *param)
   return value;
 }
 
-void read_polarimetry_config(char *configFile, char *decomposition,
-			     char **pRed, char **pGreen, char **pBlue)
+int read_polarimetry_config(char *configFile, char *decomposition,
+			    char **pRed, char **pGreen, char **pBlue)
 {
   char line[128], params[25];
   char *test;
   char *red = (char *) MALLOC(sizeof(char)*25);
   char *green = (char *) MALLOC(sizeof(char)*25);
   char *blue = (char *) MALLOC(sizeof(char)*25);
+  int found = FALSE;
 
   FILE *fConfig = fopen(configFile, "r");
   if (fConfig) {
@@ -265,6 +266,7 @@ void read_polarimetry_config(char *configFile, char *decomposition,
         if (strncmp(test, "blue", 4)==0)
 	  strcpy(blue, read_str(line, "blue"));
         FREE(test);
+	found = TRUE;
       }
       if (strncmp(line, "[VanZyl3]", 9)==0) 
 	strcpy(params, "vanzyl3");
@@ -278,6 +280,7 @@ void read_polarimetry_config(char *configFile, char *decomposition,
         if (strncmp(test, "blue", 4)==0)
 	  strcpy(blue, read_str(line, "blue"));
         FREE(test);
+	found = TRUE;
       }
       if (strncmp(line, "[Yamaguchi3]", 12)==0) 
 	strcpy(params, "yamaguchi3");
@@ -291,6 +294,7 @@ void read_polarimetry_config(char *configFile, char *decomposition,
         if (strncmp(test, "blue", 4)==0)
 	  strcpy(blue, read_str(line, "blue"));
         FREE(test);
+	found = TRUE;
       }
       if (strncmp(line, "[Yamaguchi4]", 12)==0) 
 	strcpy(params, "yamaguchi4");
@@ -304,6 +308,7 @@ void read_polarimetry_config(char *configFile, char *decomposition,
         if (strncmp(test, "blue", 4)==0)
 	  strcpy(blue, read_str(line, "blue"));
         FREE(test);
+	found = TRUE;
       }
       if (strncmp(line, "[Krogager]", 10)==0) 
 	strcpy(params, "krogager");
@@ -317,71 +322,7 @@ void read_polarimetry_config(char *configFile, char *decomposition,
         if (strncmp(test, "blue", 4)==0)
 	  strcpy(blue, read_str(line, "blue"));
         FREE(test);
-      }
-      if (strncmp(line, "[Touzi1]", 8)==0) 
-	strcpy(params, "touzi1");
-      if (strcmp(params, "touzi1")==0 &&
-	  strcmp_case(params, decomposition) == 0) {
-        test = read_param(line);
-        if (strncmp(test, "red", 3)==0)
-	  strcpy(red, read_str(line, "red"));
-        if (strncmp(test, "green", 5)==0)
-	  strcpy(green, read_str(line, "green"));
-        if (strncmp(test, "blue", 4)==0)
-	  strcpy(blue, read_str(line, "blue"));
-        FREE(test);
-      }
-      if (strncmp(line, "[Touzi2]", 8)==0) 
-	strcpy(params, "touzi2");
-      if (strcmp(params, "touzi2")==0 &&
-	  strcmp_case(params, decomposition) == 0) {
-        test = read_param(line);
-        if (strncmp(test, "red", 3)==0)
-	  strcpy(red, read_str(line, "red"));
-        if (strncmp(test, "green", 5)==0)
-	  strcpy(green, read_str(line, "green"));
-        if (strncmp(test, "blue", 4)==0)
-	  strcpy(blue, read_str(line, "blue"));
-        FREE(test);
-      }
-      if (strncmp(line, "[Touzi3]", 8)==0) 
-	strcpy(params, "touzi3");
-      if (strcmp(params, "touzi3")==0 &&
-	  strcmp_case(params, decomposition) == 0) {
-        test = read_param(line);
-        if (strncmp(test, "red", 3)==0)
-	  strcpy(red, read_str(line, "red"));
-        if (strncmp(test, "green", 5)==0)
-	  strcpy(green, read_str(line, "green"));
-        if (strncmp(test, "blue", 4)==0)
-	  strcpy(blue, read_str(line, "blue"));
-        FREE(test);
-      }
-      if (strncmp(line, "[Touzi4]", 8)==0) 
-	strcpy(params, "touzi4");
-      if (strcmp(params, "touzi4")==0 &&
-	  strcmp_case(params, decomposition) == 0) {
-        test = read_param(line);
-        if (strncmp(test, "red", 3)==0)
-	  strcpy(red, read_str(line, "red"));
-        if (strncmp(test, "green", 5)==0)
-	  strcpy(green, read_str(line, "green"));
-        if (strncmp(test, "blue", 4)==0)
-	  strcpy(blue, read_str(line, "blue"));
-        FREE(test);
-      }
-      if (strncmp(line, "[Touzi5]", 8)==0) 
-	strcpy(params, "touzi5");
-      if (strcmp(params, "touzi5")==0 &&
-	  strcmp_case(params, decomposition) == 0) {
-        test = read_param(line);
-        if (strncmp(test, "red", 3)==0)
-	  strcpy(red, read_str(line, "red"));
-        if (strncmp(test, "green", 5)==0)
-	  strcpy(green, read_str(line, "green"));
-        if (strncmp(test, "blue", 4)==0)
-	  strcpy(blue, read_str(line, "blue"));
-        FREE(test);
+	found = TRUE;
       }
     }
     FCLOSE(fConfig);
@@ -389,6 +330,8 @@ void read_polarimetry_config(char *configFile, char *decomposition,
   *pRed = red;
   *pGreen = green;
   *pBlue = blue;
+  
+  return found;
 }
 
 static int get_scheme_count(char *line, char separator)
@@ -1549,6 +1492,20 @@ static int check_config(const char *configFileName, convert_config *cfg)
       asfPrintError("Reference DEM file '%s' does not exist\n",
 		    cfg->terrain_correct->dem);
     }
+
+    // Look for polarimetric data.
+    // Polarimetric segmentations and parameters can't be radiometrically
+    // corrected.
+    if (strcmp_case(cfg->import->image_data_type, 
+		    "POLARIMETRIC_SEGMENTATION") == 0 &&
+	cfg->terrain_correct->do_radiometric)
+      asfPrintError("Polarimetric segmentations can't be radiometrically "
+		    "terrain corrected!\n");
+    if (strcmp_case(cfg->import->image_data_type, 
+		    "POLARIMETRIC_PARAMETER") == 0 && 
+	cfg->terrain_correct->do_radiometric)
+      asfPrintError("Polarimetric parameters can't be radiometrically "
+		    "terrain corrected!\n");
     
     // Check for pixel size smaller than threshold ???
     
@@ -1711,7 +1668,12 @@ static int check_config(const char *configFileName, convert_config *cfg)
 	asfPrintError("Selected scaling method (%s) not supported\n",
 		      cfg->export->byte);
       }
-    }
+      // Force polarimetric results with colormap to byte mapping
+      if (strcmp_case(cfg->import->image_data_type, 
+		      "POLARIMETRIC_PARAMETER") == 0 &&
+	  strlen(cfg->import->polsarpro_colormap) > 0)
+	strcpy(cfg->export->byte, "SIGMA"); 
+   }
     
     // Only allow PolSARPro as export format if we are actually dealing
     // with PolSARPro data as input as well
@@ -3134,7 +3096,7 @@ static int asf_convert_file(char *configFileName, int saveDEM)
 					      cfg->geocoding->projection, cfg->geocoding->force,
 					      RESAMPLE_BILINEAR, cfg->geocoding->height,
 					      datum, cfg->geocoding->pixel, NULL, inFile, outFile,
-					      MASK_INVALID_DATA),
+					      0.0),
 		   "geocoding incidence angles (asf_geocode)\n");
     }
     else {
@@ -3142,21 +3104,42 @@ static int asf_convert_file(char *configFileName, int saveDEM)
       sprintf(outFile, "%s/incidence_angles", cfg->general->tmp_dir);
     }
     
-    sprintf(inFile, "%s", outFile);
-    sprintf(outFile, "%s/incidence_angles_exported", cfg->general->tmp_dir);
+    if (is_dir(cfg->general->out_name)) {
+      char *tmp = 
+	(char *) MALLOC(sizeof(char)*(strlen(cfg->general->tmp_dir)+20));
+      sprintf(tmp, "%s%cimport.meta", cfg->general->tmp_dir, DIR_SEPARATOR);
+      if (!fileExists(tmp))
+	asfPrintError("Can't save incidence angle map!\n");
+      meta_parameters *meta = meta_read(tmp);
+      free(tmp);
+      sprintf(inFile, "%s", outFile);
+      if (meta->general->image_data_type == POLARIMETRIC_DECOMPOSITION)
+	sprintf(outFile, "%s%c%s_incidence_angle", cfg->general->out_name,
+		DIR_SEPARATOR, find_decomposition(meta));
+      else
+	sprintf(outFile, "%s%cincidence_angle", cfg->general->out_name,
+		DIR_SEPARATOR);      
+      meta_free(meta);
+    }
+    else {
+      sprintf(inFile, "%s", outFile);
+      char *tmp = appendToBasename(cfg->general->out_name, "_incidence_angle");
+      strcpy(outFile, tmp);
+      free(tmp);
+    }
     
     if (cfg->general->export) {
       update_status("Exporting incidence angles...");
 
-      check_return(
-          asf_export(GEOTIFF, NONE, inFile, outFile),
-          "exporting indcidence angles (asf_export)\n");
-      sprintf(inFile, "%s_INCIDENCE_ANGLES.tif", outFile);
-      strcpy(outFile, cfg->general->out_name);
-      char *tmp = stripExt(outFile);
-      sprintf(outFile, "%s_incidence_angles.tif", tmp);
-      FREE(tmp);
-      fileRename(inFile, outFile);
+      char **band = (char **) MALLOC(sizeof(char *)*2);
+      band[0] = (char *) MALLOC(sizeof(char)*25);
+      band[1] = NULL;
+      strcpy(band[0], "INCIDENCE_ANGLES");
+      check_return(asf_export_bands(GEOTIFF, NONE, 0, 0, 0, NULL,
+				    inFile, outFile, band, NULL, NULL),
+		   "exporting indcidence angles (asf_export)\n");
+      FREE(band[0]);
+      FREE(band);
     }
     else {
       // no export... just move the geocoded file out of the
@@ -3186,33 +3169,42 @@ static int asf_convert_file(char *configFileName, int saveDEM)
       sprintf(outFile, "%s/terrain_correct_mask", cfg->general->tmp_dir);
     }
     
-    sprintf(inFile, "%s", outFile);
-    char *tmp = appendToBasename(cfg->general->out_name, "_layover_mask");
-    strcpy(outFile, tmp);
-    free(tmp);
+    if (is_dir(cfg->general->out_name)) {
+      char *tmp = 
+	(char *) MALLOC(sizeof(char)*(strlen(cfg->general->tmp_dir)+20));
+      sprintf(tmp, "%s%cimport.meta", cfg->general->tmp_dir, DIR_SEPARATOR);
+      meta_parameters *meta = meta_read(tmp);
+      free(tmp);
+      sprintf(inFile, "%s", outFile);
+      if (meta->general->image_data_type == POLARIMETRIC_DECOMPOSITION)
+	sprintf(outFile, "%s%c%s_layover_mask", cfg->general->out_name,
+		DIR_SEPARATOR, find_decomposition(meta));
+      else
+	sprintf(outFile, "%s%clayover_mask", cfg->general->out_name,
+		DIR_SEPARATOR);
+      meta_free(meta);
+    }
+    else {
+      sprintf(inFile, "%s", outFile);
+      char *tmp = appendToBasename(cfg->general->out_name, "_layover_mask");
+      strcpy(outFile, tmp);
+      free(tmp);
+    }
     
     if (cfg->general->export) {
       update_status("Exporting layover mask...");
       
       meta_parameters *meta = meta_read(inFile);
       
-      char **bands = extract_band_names(meta->general->bands,
-					meta->general->band_count);
-      //            char *bands[2];
-      //            bands[0] = meta->general->bands;
-      //            bands[1] = NULL;
+      char *bands[2];
+      bands[0] = meta->general->bands;
+      bands[1] = NULL;
       
       check_return(
-		   asf_export_bands(get_format(cfg), TRUNCATE, 1, 0, 0,
+		   asf_export_bands(GEOTIFF, TRUNCATE, 1, 0, 0,
 				    "layover_mask.lut", inFile, outFile, bands,
 				    NULL, NULL),
 		   "exporting layover mask (asf_export)\n");
-      
-      int i;
-      for (i=0; i<meta->general->band_count; i++) {
-	FREE(bands[i]);
-      }
-      FREE(bands);
       meta_free(meta);
     }
     else {
@@ -4043,47 +4035,51 @@ static void do_export(convert_config *cfg, char *inFile, char *outFile)
 	  // Exporting polarimetric decompositions into an RGB file as well
 	  if (meta->general->image_data_type == POLARIMETRIC_DECOMPOSITION &&
 	      format != POLSARPRO_HDR) {
-            int i;
+            int i, found = FALSE;
 	    char decomposition[25], configFile[512], decompFile[512];
 	    char *red, *green, *blue;
 	    sprintf(decomposition, "%s", find_decomposition(meta));
 	    sprintf(configFile, "%s%cpolarimetry.cfg", 
 		    get_asf_share_dir(), DIR_SEPARATOR);
-	    read_polarimetry_config(configFile, decomposition, 
-				    &red, &green, &blue);
-            char **bands = MALLOC(sizeof(char*)*meta->general->band_count);
-            for (i=0; i<meta->general->band_count; i++)
-              bands[i] = MALLOC(sizeof(char)*32);
-	    strcpy(bands[0], red);
-	    strcpy(bands[1], green);
-	    strcpy(bands[2], blue);
-	    if (meta->general->band_count > 3)
-	      strcpy(bands[3], "");
-	    if (meta->general->band_count > 4)
-	      strcpy(bands[4], "");
-	    asfPrintStatus("\nExporting decomposition into single color file:\n"
-			   "Red band  : %s\n"
-			   "Green band: %s\n"
-			   "Blue band : %s\n\n",
-			   red, green, blue);
-	    sprintf(decompFile, "%s%c%s_RGB", 
-		    outFile, DIR_SEPARATOR, decomposition);
-	    meta_parameters *md = meta_read(inFile);
-	    md->general->image_data_type = RGB_STACK;
-	    meta_write(md, inFile);
-	    meta_free(md);
-	    check_return(asf_export_bands(format, scale, TRUE, 0, 0, NULL,
-					  inFile, decompFile, bands, 
-					  &num_outputs, &output_names),
-			 "export data file (asf_export), polarimetric decomposition.\n");
-	    md = meta_read(inFile);
-	    md->general->image_data_type = POLARIMETRIC_DECOMPOSITION;
-	    meta_write(md, inFile);
-	    meta_free(md);
-
-            for (i=0; i<meta->general->band_count; i++)
-              FREE(bands[i]);
-            FREE(bands);
+	    found = read_polarimetry_config(configFile, decomposition, 
+					    &red, &green, &blue);
+	    // Only write RGB version if you find information about it in the
+	    // configuration file.
+	    if (found) {
+	      char **bands = MALLOC(sizeof(char*)*meta->general->band_count);
+	      for (i=0; i<meta->general->band_count; i++)
+		bands[i] = MALLOC(sizeof(char)*32);
+	      strcpy(bands[0], red);
+	      strcpy(bands[1], green);
+	      strcpy(bands[2], blue);
+	      if (meta->general->band_count > 3)
+		strcpy(bands[3], "");
+	      if (meta->general->band_count > 4)
+		strcpy(bands[4], "");
+	      asfPrintStatus("\nExporting decomposition into single color file:\n"
+			     "Red band  : %s\n"
+			     "Green band: %s\n"
+			     "Blue band : %s\n\n",
+			     red, green, blue);
+	      sprintf(decompFile, "%s%c%s_RGB", 
+		      outFile, DIR_SEPARATOR, decomposition);
+	      meta_parameters *md = meta_read(inFile);
+	      md->general->image_data_type = RGB_STACK;
+	      meta_write(md, inFile);
+	      meta_free(md);
+	      check_return(asf_export_bands(format, scale, TRUE, 0, 0, NULL,
+					    inFile, decompFile, bands, 
+					    &num_outputs, &output_names),
+			   "export data file (asf_export), polarimetric decomposition.\n");
+	      md = meta_read(inFile);
+	      md->general->image_data_type = POLARIMETRIC_DECOMPOSITION;
+	      meta_write(md, inFile);
+	      meta_free(md);
+	      
+	      for (i=0; i<meta->general->band_count; i++)
+		FREE(bands[i]);
+	      FREE(bands);
+	    }
 	  }
         }
         else if (meta->general->band_count != 1 && strlen(cfg->export->band) > 0) {
